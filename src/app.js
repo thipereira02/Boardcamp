@@ -3,7 +3,8 @@ import express from "express";
 import cors from "cors";
 import pg from "pg";
 
-import { insertCategories } from "./schemas/categoriesSchemas.js";
+import { insertCategories } from "./schemas/categoriesSchema.js";
+import { insertGame } from "./schemas/gamesSchema.js";
 
 const app = express();
 
@@ -43,12 +44,46 @@ app.post("/categories", async (req, res) => {
 			FROM categories 
 			WHERE name=$1`
 		,[name]);
-		if (categoriesAlreadyExists.rows.length !== 0) return res.sendStatus(409);
+		if (categoriesAlreadyExists.rowCount !== 0) return res.sendStatus(409);
 
 		await connection.query(`
 			INSERT INTO categories
 			(name) VALUES ($1)
 		`,[name]);
+
+		return res.sendStatus(201);
+	} catch(e) {
+		console.log(e);
+		res.sendStatus(500);
+	}
+});
+
+app.post("/games", async (req, res) => {
+	try {
+		const { name, image, stockTotal, categoryId, pricePerDay } = req.body;
+
+		const isValid = insertGame.validate({name, image, stockTotal, categoryId, pricePerDay});
+		if (isValid.error !== undefined) return res.sendStatus(400);
+
+		const categoryExists = await connection.query(`
+			SELECT *
+			FROM categories
+			WHERE id=$1`
+		,[categoryId]);
+		if (categoryExists.rowCount === 0) return res.sendStatus(400);
+
+		const gameExists = await connection.query(`
+			SELECT * 
+			FROM games
+			WHERE name=$1`
+		,[name]);
+		if (gameExists.rowCount !== 0) return res.sendStatus(409);
+
+		await connection.query(`
+			INSERT INTO games
+			(name, image, "stockTotal", "categoryId", "pricePerDay")
+			VALUES ($1, $2, $3, $4, $5)`
+		,[name, image, stockTotal, categoryId, pricePerDay]);
 
 		return res.sendStatus(201);
 	} catch(e) {
