@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import express from "express";
 import cors from "cors";
 import pg from "pg";
@@ -17,6 +18,16 @@ const database = {
 
 const { Pool } = pg;
 const connection = new Pool(database);
+
+app.get("/categories", async (req, res) => {
+	try {
+		const result = await connection.query("SELECT * FROM categories");
+		return res.send(result.rows);
+	} catch(e) {
+		console.log(e);
+		res.sendStatus(500);
+	}
+});
 
 app.listen(4000, () => {
 	console.log("Server listening on port 4000");
