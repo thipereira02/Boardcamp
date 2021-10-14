@@ -29,6 +29,31 @@ app.get("/categories", async (req, res) => {
 	}
 });
 
+app.post("/categories", async (req, res) => {
+	try {
+		const { name } = req.body;
+
+		if (!name) return res.sendStatus(404);
+
+		const categoriesAlreadyExists = await connection.query(`
+			SELECT * 
+			FROM categories 
+			WHERE name=$1`
+		,[name]);
+		if (categoriesAlreadyExists.rows.length !== 0) return res.sendStatus(409);
+
+		await connection.query(`
+			INSERT INTO categories
+			(name) VALUES ($1)
+		`,[name]);
+
+		return res.sendStatus(201);
+	} catch(e) {
+		console.log(e);
+		res.sendStatus(500);
+	}
+});
+
 app.listen(4000, () => {
 	console.log("Server listening on port 4000");
 });
