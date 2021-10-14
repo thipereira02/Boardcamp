@@ -3,6 +3,8 @@ import express from "express";
 import cors from "cors";
 import pg from "pg";
 
+import { insertCategories } from "./schemas/categoriesSchemas.js";
+
 const app = express();
 
 app.use(cors());
@@ -33,7 +35,8 @@ app.post("/categories", async (req, res) => {
 	try {
 		const { name } = req.body;
 
-		if (!name) return res.sendStatus(404);
+		const isValid = insertCategories.validate({name});
+		if (isValid.error !== undefined) return res.sendStatus(404);
 
 		const categoriesAlreadyExists = await connection.query(`
 			SELECT * 
