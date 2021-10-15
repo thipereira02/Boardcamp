@@ -145,6 +145,24 @@ app.get("/customers", async (req, res) => {
 	}
 });
 
+app.get("/customers/:id", async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		const result = await connection.query(`
+			SELECT *
+			FROM customers
+			WHERE id=$1
+		`,[id]);
+		if (result.rowCount === 0) return res.sendStatus(404);
+		
+		return res.send(result.rows[0]);
+	} catch(e) {
+		console.log(e);
+		res.sendStatus(500);
+	}
+});
+
 app.post("/customers", async (req, res) => {
 	try {
 		const { name, phone, cpf, birthday } = req.body;
