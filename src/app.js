@@ -124,7 +124,16 @@ app.post("/games", async (req, res) => {
 
 app.get("/customers", async (req, res) => {
 	try {
-		const result = await connection.query(`
+		const { cpf } = req.query;
+		let result;
+
+		if (cpf) result = await connection.query(`
+			SELECT *
+			FROM customers
+			WHERE cpf
+			LIKE $1 || '%' 	
+		`,[cpf]);
+		else result = await connection.query(`
 			SELECT *
 			FROM customers
 		`);
