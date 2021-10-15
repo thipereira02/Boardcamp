@@ -5,6 +5,7 @@ import pg from "pg";
 
 import { insertCategories } from "./schemas/categoriesSchema.js";
 import { insertGame } from "./schemas/gamesSchema.js";
+import { insertCustomer } from "./schemas/customersSchema.js";
 
 const app = express();
 
@@ -113,6 +114,33 @@ app.post("/games", async (req, res) => {
 			(name, image, "stockTotal", "categoryId", "pricePerDay")
 			VALUES ($1, $2, $3, $4, $5)`
 		,[name, image, stockTotal, categoryId, pricePerDay]);
+
+		return res.sendStatus(201);
+	} catch(e) {
+		console.log(e);
+		res.sendStatus(500);
+	}
+});
+
+app.post("/customers", async (req, res) => {
+	try {
+		const { name, phone, cpf, birthday } = req.body;
+
+		const isValid = insertCustomer.validate({name, phone, cpf, birthday});
+		if (isValid.error !== undefined) return res.sendStatus(400);
+
+		const cpfExists = await connection.query(`
+			SELECT *
+			FROM customers
+			WHERE cpf = $1
+		`,[cpf]);
+		if (cpfExists.rowCount !== 0) return res.sendStatus(409);
+
+		await connection.query(`
+			INSERT INTO customers
+			(name, phone, cpf, birthday)
+			VALUES ($1, $2, $3, $4) 
+		`,[name, phone, cpf, birthday]);
 
 		return res.sendStatus(201);
 	} catch(e) {
