@@ -122,6 +122,20 @@ app.post("/games", async (req, res) => {
 	}
 });
 
+app.get("/customers", async (req, res) => {
+	try {
+		const result = await connection.query(`
+			SELECT *
+			FROM customers
+		`);
+
+		return res.send(result.rows);
+	} catch(e) {
+		console.log(e);
+		res.sendStatus(500);
+	}
+});
+
 app.post("/customers", async (req, res) => {
 	try {
 		const { name, phone, cpf, birthday } = req.body;
