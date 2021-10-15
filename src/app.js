@@ -58,6 +58,35 @@ app.post("/categories", async (req, res) => {
 	}
 });
 
+app.get("/games", async (req, res) => {
+	try {
+		const { name } = req.query;
+		let result;
+
+		if (name) result = await connection.query(`
+			SELECT games.*, categories.name 
+			AS "categoryName"
+			FROM games
+			JOIN categories
+			ON games."categoryId" = categories.id 
+			WHERE games.name 
+			ILIKE $1 || '%'`
+		,[name]);
+		else result = await connection.query(`
+			SELECT games.*, categories.name 
+			AS "categoryName"
+			FROM games
+			JOIN categories
+			ON games."categoryId" = categories.id
+		`);
+
+		res.send(result.rows);
+	} catch(e) {
+		console.log(e);
+		res.sendStatus(500);
+	} 
+});
+
 app.post("/games", async (req, res) => {
 	try {
 		const { name, image, stockTotal, categoryId, pricePerDay } = req.body;
