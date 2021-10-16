@@ -190,6 +190,42 @@ app.post("/customers", async (req, res) => {
 	}
 });
 
+app.put("/customers/:id", async (req, res) => {
+	try {
+		const { name, phone, cpf, birthday } = req.body;
+		const { id } = req.params;
+
+		const idExists = await connection.query(`
+			SELECT *
+			FROM customers
+			WHERE id=$1
+		`,[id]);
+		if (idExists.rowCount === 0) return res.sendStatus(404);
+
+		const isValid = insertCustomer.validate({name, phone, cpf, birthday});
+		if (isValid.error !== undefined) return res.sendStatus(400);
+
+		const cpfExists = await connection.query(`
+			SELECT *
+			FROM customers
+			WHERE cpf LIKE $1
+			AND id <> $2
+		`,[cpf, id]);
+		if (cpfExists.rowCount !== 0) return res.sendStatus(409);
+
+		await connection.query(`
+			UPDATE customers
+			SET name=$1, phone=$2, cpf=$3, birthday=$4
+			WHERE id=$5
+		`,[name, phone, cpf, birthday, id]);
+
+		return res.sendStatus(200);
+	} catch(e) {
+		console.log(e);
+		res.sendStatus(500);
+	}
+});
+
 app.listen(4000, () => {
 	console.log("Server listening on port 4000");
 });
