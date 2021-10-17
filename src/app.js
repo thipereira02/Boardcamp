@@ -8,6 +8,7 @@ import { insertCategories } from "./schemas/categoriesSchema.js";
 import { insertGame } from "./schemas/gamesSchema.js";
 import { insertCustomer } from "./schemas/customersSchema.js";
 import { insertRental } from "./schemas/rentalsSchema.js";
+import dayjs from "dayjs";
 
 const app = express();
 
@@ -333,6 +334,48 @@ app.post("/rentals", async (req, res) => {
         `, [customerId, gameId, daysRented, originalPrice]);
 
 		return res.sendStatus(201);
+	} catch(e) {
+		console.log(e);
+		res.sendStatus(500);
+	}
+});
+
+app.post("/rentals/:id/return", async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		const rentalExists = await connection.query(`
+			SELECT *
+			FROM rentals
+			WHERE id=$1
+		`,[id]);
+		if (rentalExists.rowCount === 0) return res.sendStatus(404);
+		if (rentalExists.rows[0].returnDate !== null) return res.sendStatus(400);
+
+		const rental = await connection.query(`
+			SELECT rentals,*, games."pricePerDay"
+			FROM rentals
+			JOIN games
+			ON rentals."gameId" = games.id
+			WHERE rentals.id=$1
+		`,[id]);
+
+		const {pricePerDay, daysRented, rentDate} = rental.rows[0];
+		let {delayFee} = rental.rows[0];
+		const today = dayjs();
+		const rentalDuration = today.diff(rentDate, "day");
+		const delayedDays = rentalDuration - daysRented;
+
+		if (daysRented < rentalDuration) delayFee = pricePerDay * delayedDays;
+
+		await connection.query(`
+			UPDATE rentals
+			SET "returnDate" = NOW(),
+			"delayFee"=$1
+			WHERE id=$2
+		`,[delayFee, id]);
+
+		return res.sendStatus(200);
 	} catch(e) {
 		console.log(e);
 		res.sendStatus(500);
