@@ -1,6 +1,7 @@
 /* eslint-disable quotes */
 import express from "express";
 import cors from "cors";
+import dayjs from "dayjs";
 
 import connection from "./database.js";
 
@@ -8,7 +9,6 @@ import { insertCategories } from "./schemas/categoriesSchema.js";
 import { insertGame } from "./schemas/gamesSchema.js";
 import { insertCustomer } from "./schemas/customersSchema.js";
 import { insertRental } from "./schemas/rentalsSchema.js";
-import dayjs from "dayjs";
 
 const app = express();
 app.use(cors());
