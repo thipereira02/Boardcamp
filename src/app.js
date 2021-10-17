@@ -6,6 +6,7 @@ import pg from "pg";
 import { insertCategories } from "./schemas/categoriesSchema.js";
 import { insertGame } from "./schemas/gamesSchema.js";
 import { insertCustomer } from "./schemas/customersSchema.js";
+import { insertRental } from "./schemas/rentalsSchema.js";
 
 const app = express();
 
@@ -220,6 +221,51 @@ app.put("/customers/:id", async (req, res) => {
 		`,[name, phone, cpf, birthday, id]);
 
 		return res.sendStatus(200);
+	} catch(e) {
+		console.log(e);
+		res.sendStatus(500);
+	}
+});
+
+app.post("/rentals", async (req, res) => {
+	try {
+		const { customerId, gameId, daysRented } = req.body;
+
+		const isValid = insertRental.validate({customerId, gameId, daysRented});
+		if (isValid.error !== undefined) return res.sendStatus(400);
+		
+		const gameExists = await connection.query(`
+			SELECT *
+			FROM games
+			WHERE id=$1
+		`,[gameId]);
+		if (gameExists.rowCount === 0) return res.sendStatus(400);
+
+		const customerExists = await connection.query(`
+			SELECT *
+			FROM customers
+			WHERE id=$1
+		`,[customerId]);
+		if (customerExists.rowCount === 0) return res.sendStatus(400);
+
+		const gameAvailable = await connection.query(`
+			SELECT *
+			FROM rentals
+			WHERE "gameId"=$1
+			AND "returnDate" IS NULL
+		`,[gameId]);
+
+		if (gameAvailable.rowCount >= gameExists.rows[0].stockTotal) return res.sendStatus(400);
+
+		const originalPrice = daysRented * gameExists.rows[0].pricePerDay;
+
+		await connection.query(`
+            INSERT INTO rentals
+            ("customerId", "gameId", "rentDate", "daysRented", "originalPrice", "returnDate", "delayFee")
+            VALUES ($1, $2, NOW(), $3, $4, NULL, NULL)
+        `, [customerId, gameId, daysRented, originalPrice]);
+
+		return res.sendStatus(201);
 	} catch(e) {
 		console.log(e);
 		res.sendStatus(500);
